@@ -1,0 +1,9 @@
+transitions
+transitions[diagrams]
+markdown
+python-dotenv
+litequeue
+azure-storage-blob 
+azure-storage-queue
+graphviz
+pygraphviz
