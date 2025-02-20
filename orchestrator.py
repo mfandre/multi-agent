@@ -1,46 +1,65 @@
-import json
 import time
+from transitions import Machine
+
+from database import Database
 from queue_factory import QueueFactory
-from state_machine import DynamicStateMachine
-from state_store import load_state, save_state
 
-class Orchestrator:
-    def __init__(self, queue_type="local"):
-        self.queue = QueueFactory.create_queue(queue_type)
-        self.result_queue = self.queue.get_queue("results")
+# Orchestrator
+class StateMachineOrchestrator:
+    transitions = [
+        {"trigger": "process_profanity", "source": "start", "dest": "profanity_checked", "queue": "sentiment_analysis"},
+        {"trigger": "process_sentiment", "source": "profanity_checked", "dest": "converted", "queue": "convert_markdown", "conditions": "is_positive"},
+        {"trigger": "process_sentiment", "source": "profanity_checked", "dest": "summarized", "queue": "summarize_text", "conditions": "is_negative"},
+        {"trigger": "process_markdown", "source": "converted", "dest": "done"},
+        {"trigger": "process_summary", "source": "summarized", "dest": "done"}
+    ]
 
-    def listen_results(self):
-        """Escuta a fila de resultados e define o próximo estágio."""
-        while True:
-            message = self.result_queue.receive_message()
-            if message:
-                self.process_result(message)
-            time.sleep(1)
+    def __init__(self, queue_factory:QueueFactory, database:Database):
+        self.queue_factory = queue_factory
+        self.database = database
+        self.machine = Machine(model=self, states=[t["dest"] for t in self.transitions] + ["start"], initial="start")
+        for transition in self.transitions:
+            self.machine.add_transition(
+                transition["trigger"], transition["source"], transition["dest"]
+            )
 
-    def process_result(self, message):
-        """Processa o resultado de um agente e define o próximo estágio."""
-        data = json.loads(message)
-        text_id = data["text_id"]
+    def get_queues(self) -> set:
+        monitored_queues = set()
+        for transition in self.transitions:
+            queue_name = transition.get("queue")
+            if queue_name and queue_name not in monitored_queues:
+                monitored_queues.add(queue_name)
+        return monitored_queues
 
-        # Carregar a máquina de estados do texto
-        current_stage, stages = load_state(text_id)
-        if not current_stage:
-            print(f"[ERRO] Estado não encontrado para {text_id}")
+    def is_positive(self, message):
+        return message.get("sentiment") == 'positive'
+
+    def is_negative(self, message):
+        return message.get("sentiment") == 'negative'
+
+    def process_message(self, queue_name, message_id):
+        message, state = self.database.get_message(message_id)
+        if not message:
             return
 
-        state_machine = DynamicStateMachine(text_id, stages)
-        
-        # Avançar para o próximo estágio
-        state_machine.machine.next()
-        next_stage = state_machine.state
+        for transition in self.transitions:
+            if transition["source"] == state and queue_name.endswith("_output"):
+                next_state = transition["dest"]
+                queue = transition.get("queue")
+                
+                if "conditions" in transition and not getattr(self, transition["conditions"])(message):
+                    continue
+                
+                if queue:
+                    self.queue_factory.get_queue(queue).put(message_id)
+                else:
+                    print("Final Output:", message["result"])
+                
+                self.database.update_message(message_id, message, next_state)
+                break
 
-        if next_stage == "finished":
-            print(f"[OK] Processamento finalizado para {text_id}")
-        else:
-            print(f"[INFO] Enviando {text_id} para {next_stage}")
-            next_queue = self.queue.get_queue(next_stage)
-            next_queue.send_message(json.dumps({"text_id": text_id}))
-
-if __name__ == "__main__":
-    orchestrator = Orchestrator()
-    orchestrator.listen_results()
+    def enqueue_initial_message(self, message_id):
+        for transition in self.transitions:
+            if transition["source"] == "start":
+                self.queue_factory.get_queue(transition["queue"]).put(message_id)
+                break
