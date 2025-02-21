@@ -20,15 +20,5 @@ if __name__ == "__main__":
     orchestrator = StateMachineOrchestrator(queue_factory, db)
 
     text = {"text": "This is a good day"}
-    message_id = db.save_message(text)
-    orchestrator.enqueue_initial_message(message_id)
-    
-    while True:
-        for queue_name in orchestrator.get_queues():
-            queue = queue_factory.get_queue(queue_name)
-            if not queue.empty():
-                message_id = queue.pop() #.get()
-                print(message_id)
-                orchestrator.process_message(queue_name, message_id.message_id)
-        time.sleep(1)
+    orchestrator.start_processing(text)
     

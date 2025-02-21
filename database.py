@@ -1,11 +1,13 @@
 import sqlite3
 import json
 import uuid
+import os
 
 # Database Handler
 class Database:
     def __init__(self, db_name="messages.db"):
-        self.conn = sqlite3.connect(db_name, check_same_thread=False)
+        db_path = os.path.join("dbs", db_name)
+        self.conn = sqlite3.connect(db_path, check_same_thread=False)
         self.cursor = self.conn.cursor()
         self.cursor.execute("""
             CREATE TABLE IF NOT EXISTS messages (

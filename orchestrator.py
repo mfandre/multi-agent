@@ -1,3 +1,4 @@
+import threading
 import time
 from transitions import Machine
 
@@ -58,8 +59,27 @@ class StateMachineOrchestrator:
                 self.database.update_message(message_id, message, next_state)
                 break
 
-    def enqueue_initial_message(self, message_id):
-        for transition in self.transitions:
-            if transition["source"] == "start":
-                self.queue_factory.get_queue(transition["queue"]).put(message_id)
-                break
+    def start_processing(self, text):
+        message_id = self.database.save_message(text)
+        self.queue_factory.get_queue("profanity_filter").put(message_id)
+        self.monitor_queues()
+
+    def monitor_queues(self):
+        monitored_queues = set()
+        while True:
+            for transition in self.transitions:
+                queue_name = transition.get("queue")
+                if queue_name and queue_name not in monitored_queues:
+                    monitored_queues.add(queue_name)
+                    threading.Thread(target=self.monitor_queue, args=(queue_name,), daemon=True).start()
+            time.sleep(1)
+
+    def monitor_queue(self, queue_name):
+        queue = self.queue_factory.get_queue(queue_name)
+        while True:
+            print(f"{queue_name} empty {queue.empty()}")
+            print(f"{queue_name} size {queue.qsize()}")
+            if not queue.empty():
+                message_id = queue.pop()
+                self.process_message(queue_name, message_id)
+            time.sleep(0.1)
