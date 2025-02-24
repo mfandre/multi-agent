@@ -9,6 +9,7 @@ class Database:
         db_path = os.path.join("dbs", db_name)
         self.conn = sqlite3.connect(db_path, check_same_thread=False)
         self.cursor = self.conn.cursor()
+        self.cursor.execute("PRAGMA journal_mode=WAL;")
         self.cursor.execute("""
             CREATE TABLE IF NOT EXISTS messages (
                 id TEXT PRIMARY KEY,
