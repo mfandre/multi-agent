@@ -3,6 +3,7 @@ transitions[diagrams]
 markdown
 python-dotenv
 litequeue
+persistqueue
 azure-storage-blob 
 azure-storage-queue
 graphviz
