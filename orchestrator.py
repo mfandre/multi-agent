@@ -59,13 +59,13 @@ class StateMachineOrchestrator:
 
                 print(f"[DEBUG] Transitioning {message_id} from {state} -> {next_state}, next queue: {next_queue}")
 
+                # Atualiza estado no banco de dados
+                self.database.update_message(message_id, message, next_state)
+
                 # Verifica condição antes de prosseguir
                 if "conditions" in transition and not getattr(self, transition["conditions"])(message):
                     print(f"[DEBUG] Condition {transition['conditions']} not met for message {message_id}")
                     continue
-
-                # Atualiza estado no banco de dados
-                self.database.update_message(message_id, message, next_state)
 
                 # Envia para a próxima fila, se houver um próximo estágio
                 if next_queue:
@@ -90,11 +90,14 @@ class StateMachineOrchestrator:
     def monitor_queue(self, queue_name):
         queue = self.queue_factory.get_queue(queue_name)
         while True:
+            print(f"[DEBUG] Orchestrator - Checking {queue_name}")
+            print(f"[DEBUG] Orchestrator - empty {queue.empty()}")
+            print(f"[DEBUG] Orchestrator - qsize {queue.qsize()}")
             if not queue.empty():
                 message = queue.pop()
                 print(f"Processing message {message.data} from {queue_name}")
                 self.process_message(queue_name, message.data)
-            time.sleep(1)
+            time.sleep(10)
 
     def draw_state_machine(self):
         self.machine.get_graph().draw('state_diagram.png', prog='dot')

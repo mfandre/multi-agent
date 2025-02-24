@@ -18,7 +18,7 @@ if __name__ == "__main__":
     
     queue_factory = QueueFactory()
     orchestrator = StateMachineOrchestrator(queue_factory, db)
-    orchestrator.draw_state_machine()
+    # orchestrator.draw_state_machine()
     
     text = {"text": "This is a good day"}
     orchestrator.start_processing(text)

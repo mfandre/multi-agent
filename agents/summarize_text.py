@@ -10,14 +10,16 @@ def summarize_text_worker(db:Database):
     input_queue = q_factory.get_queue("summarize_text")
     output_queue = q_factory.get_queue("summarize_output")
     while True:
+        print("running summarize_text_worker")
         if not input_queue.empty():
             message_q = input_queue.pop()
             message, _ = db.get_message(message_q.data)
             message["result"] = message["text"].split()[0]
-            db.update_message(message_q.data, message, None)
-            output_queue.put(message_q.data)
+            message.setdefault("processed", []).append("summarized")
             input_queue.done(message_q.message_id)
-        time.sleep(1)
+            output_queue.put(message_q.data)
+            db.update_message(message_q.data, message)
+        time.sleep(10)
 
 if __name__ == "__main__":
     db = Database()
