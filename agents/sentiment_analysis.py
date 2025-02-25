@@ -17,7 +17,11 @@ def sentiment_analysis_worker(db:Database):
             app_log.debug(message_q)
             message, _ = db.get_message(message_q)
             app_log.debug(message)
-            message["sentiment"] = "positive" if "good" in message["text"] else "negative"
+            if "result" in message:
+                text = message["result"]
+            else:
+                text = message["text"]
+            message["sentiment"] = "positive" if "good" in text else "negative"
             message.setdefault("processed", []).append("sentiment_anlysed")
             app_log.debug(message)
             input_queue.ack(message_q)

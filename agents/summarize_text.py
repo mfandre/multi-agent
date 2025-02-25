@@ -16,7 +16,11 @@ def summarize_text_worker(db:Database):
         if not input_queue.empty():
             message_q = input_queue.get()
             message, _ = db.get_message(message_q)
-            message["result"] = message["text"].split()[0]
+            if "result" in message:
+                text = message["result"]
+            else:
+                text = message["text"]
+            message["result"] = text.split()[0]
             message.setdefault("processed", []).append("summarized")
             input_queue.ack(message_q)
             output_queue.put(message_q)

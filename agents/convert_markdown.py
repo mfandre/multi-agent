@@ -14,7 +14,10 @@ def convert_markdown_worker(db:Database):
         if not input_queue.empty():
             message_q = input_queue.get()
             message, _ = db.get_message(message_q)
-            text = message["text"]
+            if "result" in message:
+                text = message["result"]
+            else:
+                text = message["text"]
             message["result"] = f"# {text}"
             message.setdefault("processed", []).append("markdowned")
             input_queue.ack(message_q)

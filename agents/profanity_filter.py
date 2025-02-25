@@ -17,7 +17,11 @@ def profanity_filter_worker(db:Database):
                 app_log.debug("processing profanity_filter_worker")
                 message_q = input_queue.get()
                 message, _ = db.get_message(message_q)
-                message["result"] = message["text"].replace("badword", "****")
+                if "result" in message:
+                    text = message["result"]
+                else:
+                    text = message["text"]
+                message["result"] = text.replace("badword", "****")
                 message.setdefault("processed", []).append("profanity_checked")
                 input_queue.ack(message_q)
                 output_queue.put(message_q)

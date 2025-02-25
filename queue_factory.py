@@ -14,4 +14,3 @@ class QueueFactory:
         # return self.queues[name]
         return SQLiteAckQueue(os.path.join(self.base_path, name), multithreading=True, auto_commit=True)
 
-    
