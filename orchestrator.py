@@ -26,6 +26,7 @@ class StateMachineOrchestrator:
             self.machine.add_transition(
                 transition["trigger"], transition["source"], transition["dest"]
             )
+        self.lock = threading.Lock()
 
     def is_positive(self, message):
         return message.get("sentiment") == "positive"
@@ -65,12 +66,13 @@ class StateMachineOrchestrator:
 
 
     def start_processing(self, text):
-        message_id = self.database.save_message(text)
-        q = self.queue_factory.get_queue("profanity_filter")
-        q.put(message_id)
-        # q.task_done()
-        app_log.debug(f"Message {message_id} added to 'profanity_filter'. Size = {q.size}")
-        self.monitor_queues()
+        with self.lock:
+            message_id = self.database.save_message(text)
+            q = self.queue_factory.get_queue("profanity_filter")
+            q.put(message_id)
+            # q.task_done()
+            app_log.debug(f"Message {message_id} added to 'profanity_filter'. Size = {q.size}")
+            self.monitor_queues()
 
     def get_queues(self) -> set:
         queues = ["profanity_filter", "convert_markdown", "sentiment_analysis", "summarize_text"]
@@ -90,21 +92,22 @@ class StateMachineOrchestrator:
 
     def monitor_queue(self, queue_name):
         while True:
-            queue = self.queue_factory.get_queue(queue_name)
-            app_log.debug(f"Orchestrator - {queue_name} qsize {queue.size}")
-            if not queue.empty():
-                message = queue.get()
-                try:
-                    app_log.debug(f"Orchestrator - Processing message {message} from {queue_name}")
-                    trigger = "process_" + queue_name.replace("_output", "")
-                    trigger_method = getattr(self, trigger, None)
-                    if trigger_method:
-                        trigger_method(message)
-                        queue.ack(message)
-                        app_log.debug(f"Orchestrator - ACK message {message} from {queue_name}")
-                except Exception as e:
-                    app_log.error(f"Orchestrator - NACK processing message {message} from {queue_name}",exc_info=True)
-                    queue.nack(message)
+            with self.lock:
+                queue = self.queue_factory.get_queue(queue_name)
+                app_log.debug(f"Orchestrator - {queue_name} qsize {queue.size}")
+                if not queue.empty():
+                    message = queue.get()
+                    try:
+                        app_log.debug(f"Orchestrator - Processing message {message} from {queue_name}")
+                        trigger = "process_" + queue_name.replace("_output", "")
+                        trigger_method = getattr(self, trigger, None)
+                        if trigger_method:
+                            trigger_method(message)
+                            queue.ack(message)
+                            app_log.debug(f"Orchestrator - ACK message {message} from {queue_name}")
+                    except Exception as e:
+                        app_log.error(f"Orchestrator - NACK processing message {message} from {queue_name}",exc_info=True)
+                        queue.nack(message)
             time.sleep(10)
 
     def draw_state_machine(self):
