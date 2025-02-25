@@ -19,7 +19,7 @@ def summarize_text_worker(db:Database):
             message.setdefault("processed", []).append("summarized")
             input_queue.ack(message_q)
             output_queue.put(message_q)
-            db.update_message(message_q, message)
+            db.update_message_without_updating_state(message_q, message)
         time.sleep(10)
 
 if __name__ == "__main__":

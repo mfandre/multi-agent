@@ -41,14 +41,18 @@ class Database:
         return (json.loads(row[0]), row[1]) if row else (None, None)
         
 
-    def update_message(self, message_id, data, state = None):
-        if state is None:
-            curr_msg, curr_state = self.get_message(message_id)
-            state = curr_state
-
+    def update_message(self, message_id, data, state):
         conn = sqlite3.connect(self.db_path, check_same_thread=False)
         cursor = conn.cursor()
         cursor.execute("UPDATE messages SET data = ?, state = ? WHERE id = ?", (json.dumps(data), state, message_id))
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+    def update_message_without_updating_state(self, message_id, data):
+        conn = sqlite3.connect(self.db_path, check_same_thread=False)
+        cursor = conn.cursor()
+        cursor.execute("UPDATE messages SET data = ? WHERE id = ?", (json.dumps(data), message_id))
         conn.commit()
         cursor.close()
         conn.close()

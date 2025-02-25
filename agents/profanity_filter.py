@@ -22,7 +22,7 @@ def profanity_filter_worker(db:Database):
                 message.setdefault("processed", []).append("profanity_checked")
                 input_queue.ack(message_q)
                 output_queue.put(message_q)
-                db.update_message(message_q, message)
+                db.update_message_without_updating_state(message_q, message)
                 print(f"end process agent profanity_filter_worker")
             except Exception as e:
                 print(e)
