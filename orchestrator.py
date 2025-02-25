@@ -52,7 +52,7 @@ class StateMachineOrchestrator:
     def process_transition(self, message_id, next_queue):
         message, state = self.database.get_message(message_id)
         if not message:
-            app_log.debug(f"[ERROR] Message {message_id} not found in database")
+            app_log.error(f"Message {message_id} not found in database")
             return
 
         for transition in self.transitions:
@@ -60,7 +60,7 @@ class StateMachineOrchestrator:
                 next_state = transition["dest"]
                 self.database.update_message(message_id, message, next_state)
                 self.queue_factory.get_queue(next_queue).put(message_id)
-                app_log.debug(f"[DEBUG] Message {message_id} sent to {next_queue}")
+                app_log.debug(f"Message {message_id} sent to {next_queue}")
                 break
 
 
@@ -69,7 +69,7 @@ class StateMachineOrchestrator:
         q = self.queue_factory.get_queue("profanity_filter")
         q.put(message_id)
         # q.task_done()
-        app_log.debug(f"[DEBUG] Mensagem {message_id} adicionada à fila 'profanity_filter'. Size = {q.size}")
+        app_log.debug(f"Message {message_id} added to 'profanity_filter'. Size = {q.size}")
         self.monitor_queues()
 
     def get_queues(self) -> set:
@@ -84,26 +84,26 @@ class StateMachineOrchestrator:
     
     def monitor_queues(self):
         for queue_name in self.get_queues():
-            app_log.debug(f"[DEBUG] Starting thread for queue: {queue_name}")
+            app_log.debug(f"Starting thread for queue: {queue_name}")
             threading.Thread(target=self.monitor_queue, args=(queue_name,), daemon=True).start()
             # time.sleep(1)
 
     def monitor_queue(self, queue_name):
         while True:
             queue = self.queue_factory.get_queue(queue_name)
-            app_log.debug(f"[DEBUG] Orchestrator - {queue_name} qsize {queue.size}")
+            app_log.debug(f"Orchestrator - {queue_name} qsize {queue.size}")
             if not queue.empty():
                 message = queue.get()
                 try:
-                    app_log.debug(f"[DEBUG] Orchestrator - Processing message {message} from {queue_name}")
+                    app_log.debug(f"Orchestrator - Processing message {message} from {queue_name}")
                     trigger = "process_" + queue_name.replace("_output", "")
                     trigger_method = getattr(self, trigger, None)
                     if trigger_method:
                         trigger_method(message)
                         queue.ack(message)
-                        app_log.debug(f"[DEBUG] Orchestrator - ACK message {message} from {queue_name}")
+                        app_log.debug(f"Orchestrator - ACK message {message} from {queue_name}")
                 except Exception as e:
-                    app_log.error(f"[ERRROR] Orchestrator - NACK processing message {message} from {queue_name}",exc_info=True)
+                    app_log.error(f"Orchestrator - NACK processing message {message} from {queue_name}",exc_info=True)
                     queue.nack(message)
             time.sleep(10)
 
