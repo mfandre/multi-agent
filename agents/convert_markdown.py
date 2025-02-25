@@ -2,14 +2,15 @@ import json
 import time
 from queue_factory import QueueFactory
 from database import Database
+from log_wrapper import app_log
 
 def convert_markdown_worker(db:Database):
-    print("starting convert_markdown_worker")
+    app_log.debug("starting convert_markdown_worker")
     q_factory = QueueFactory()
     while True:
         input_queue = q_factory.get_queue("convert_markdown")
         output_queue = q_factory.get_queue("convert_markdown_output")
-        print(f"running convert_markdown_worker. empty {input_queue.empty()} | size {input_queue.size}")
+        app_log.debug(f"running convert_markdown_worker. empty {input_queue.empty()} | size {input_queue.size}")
         if not input_queue.empty():
             message_q = input_queue.get()
             message, _ = db.get_message(message_q)
