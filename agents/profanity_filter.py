@@ -7,10 +7,10 @@ from queue_factory import QueueFactory
 def profanity_filter_worker(db:Database):
     print("starting profanity_filter_worker")
     q_factory = QueueFactory()
-    input_queue = q_factory.get_queue("profanity_filter")
-    output_queue = q_factory.get_queue("profanity_filter_output")
     while True:
-        print("running profanity_filter_worker")
+        output_queue = q_factory.get_queue("profanity_filter_output")
+        input_queue = q_factory.get_queue("profanity_filter")
+        print(f"running profanity_filter_worker. empty {input_queue.empty()} | size {input_queue.size}")
         if not input_queue.empty():
             try:
                 print("processing profanity_filter_worker")

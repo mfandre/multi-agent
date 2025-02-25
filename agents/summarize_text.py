@@ -7,10 +7,11 @@ from queue_factory import QueueFactory
 def summarize_text_worker(db:Database):
     print("starting summarize_text_worker")
     q_factory = QueueFactory()
-    input_queue = q_factory.get_queue("summarize_text")
-    output_queue = q_factory.get_queue("summarize_text_output")
+    
     while True:
-        print("running summarize_text_worker")
+        input_queue = q_factory.get_queue("summarize_text")
+        output_queue = q_factory.get_queue("summarize_text_output")
+        print(f"running sentiment_analysis_worker. empty {input_queue.empty()} | size {input_queue.size}")
         if not input_queue.empty():
             message_q = input_queue.get()
             message, _ = db.get_message(message_q)

@@ -23,8 +23,10 @@ if __name__ == "__main__":
     orchestrator = StateMachineOrchestrator(queue_factory, db)
     # orchestrator.draw_state_machine()
     
-    text = {"text": "This is a good day"}
+    text = {"text": "This is a good day, badword!"}
+    text2 = {"text": "badword, badword, badword!"}
     orchestrator.start_processing(text)
+    orchestrator.start_processing(text2)
     while True:
         time.sleep(1)
     

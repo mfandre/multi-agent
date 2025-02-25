@@ -9,8 +9,9 @@ class QueueFactory:
         self.queues = {}
 
     def get_queue(self, name) -> SQLiteAckQueue:
-        if name not in self.queues:
-            self.queues[name] = SQLiteAckQueue(os.path.join(self.base_path, name), multithreading=True)
-        return self.queues[name]
+        # if name not in self.queues:
+        #     self.queues[name] = SQLiteAckQueue(os.path.join(self.base_path, name), multithreading=True, auto_commit=True)
+        # return self.queues[name]
+        return SQLiteAckQueue(os.path.join(self.base_path, name), multithreading=True, auto_commit=True)
 
     

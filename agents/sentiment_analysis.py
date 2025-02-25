@@ -6,10 +6,11 @@ from queue_factory import QueueFactory
 def sentiment_analysis_worker(db:Database):
     print("starting sentiment_analysis_worker")
     q_factory = QueueFactory()
-    input_queue = q_factory.get_queue("sentiment_analysis")
-    output_queue = q_factory.get_queue("sentiment_analysis_output")
+    
     while True:
-        print("running sentiment_analysis_worker")
+        input_queue = q_factory.get_queue("sentiment_analysis")
+        output_queue = q_factory.get_queue("sentiment_analysis_output")
+        print(f"running sentiment_analysis_worker. empty {input_queue.empty()} | size {input_queue.size}")
         if not input_queue.empty():
             message_q = input_queue.get()
             print(message_q)
@@ -18,7 +19,7 @@ def sentiment_analysis_worker(db:Database):
             message["sentiment"] = "positive" if "good" in message["text"] else "negative"
             message.setdefault("processed", []).append("sentiment_anlysed")
             print(message)
-            input_queue.act(message_q)
+            input_queue.ack(message_q)
             output_queue.put(message_q)
             db.update_message(message_q, message)
         time.sleep(10)
