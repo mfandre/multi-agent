@@ -16,6 +16,9 @@ if __name__ == "__main__":
     threading.Thread(target=sentiment_analysis_worker, daemon=True, args=[db]).start()
     threading.Thread(target=summarize_text_worker, daemon=True, args=[db]).start()
     
+    # wait to create DBs
+    time.sleep(5)
+
     queue_factory = QueueFactory()
     orchestrator = StateMachineOrchestrator(queue_factory, db)
     # orchestrator.draw_state_machine()

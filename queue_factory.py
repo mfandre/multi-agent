@@ -1,12 +1,16 @@
 import os
-from litequeue import LiteQueue
-from persistqueue import Queue
+# from litequeue import LiteQueue
+from persistqueue.sqlackqueue import SQLiteAckQueue
 
 class QueueFactory:
-    def __init__(self):
+    def __init__(self, base_path="dbs"):
+        self.base_path = base_path
+        os.makedirs(base_path, exist_ok=True)
         self.queues = {}
 
-    def get_queue(self, queue_name):
-        db_path = os.path.join("dbs", f"{queue_name}.db")
-        return LiteQueue(db_path)
+    def get_queue(self, name) -> SQLiteAckQueue:
+        if name not in self.queues:
+            self.queues[name] = SQLiteAckQueue(os.path.join(self.base_path, name), multithreading=True)
+        return self.queues[name]
+
     

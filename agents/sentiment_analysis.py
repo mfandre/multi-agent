@@ -7,20 +7,20 @@ def sentiment_analysis_worker(db:Database):
     print("starting sentiment_analysis_worker")
     q_factory = QueueFactory()
     input_queue = q_factory.get_queue("sentiment_analysis")
-    output_queue = q_factory.get_queue("sentiment_output")
+    output_queue = q_factory.get_queue("sentiment_analysis_output")
     while True:
         print("running sentiment_analysis_worker")
         if not input_queue.empty():
-            message_q = input_queue.pop()
+            message_q = input_queue.get()
             print(message_q)
-            message, _ = db.get_message(message_q.data)
+            message, _ = db.get_message(message_q)
             print(message)
             message["sentiment"] = "positive" if "good" in message["text"] else "negative"
             message.setdefault("processed", []).append("sentiment_anlysed")
             print(message)
-            input_queue.done(message_q.message_id)
-            output_queue.put(message_q.data)
-            db.update_message(message_q.data, message)
+            input_queue.act(message_q)
+            output_queue.put(message_q)
+            db.update_message(message_q, message)
         time.sleep(10)
 
 if __name__ == "__main__":

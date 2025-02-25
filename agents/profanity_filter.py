@@ -14,15 +14,15 @@ def profanity_filter_worker(db:Database):
         if not input_queue.empty():
             try:
                 print("processing profanity_filter_worker")
-                message_q = input_queue.pop()
-                message, _ = db.get_message(message_q.data)
+                message_q = input_queue.get()
+                message, _ = db.get_message(message_q)
                 if "profanity_checked" in message.get("processed", []):
                     continue
                 message["result"] = message["text"].replace("badword", "****")
                 message.setdefault("processed", []).append("profanity_checked")
-                input_queue.done(message_q.message_id)
-                output_queue.put(message_q.data)
-                db.update_message(message_q.data, message)
+                input_queue.ack(message_q)
+                output_queue.put(message_q)
+                db.update_message(message_q, message)
                 print(f"end process agent profanity_filter_worker")
             except Exception as e:
                 print(e)
